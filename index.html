@@ -27,8 +27,8 @@
         <h1 class="text-3xl font-bold text-cyan-400">Interval Timer</h1>
 
         <div class="flex flex-col items-center">
-            <label for="duration" class="text-sm font-medium text-gray-400 mb-2">Set Duration (Minutes)</label>
-            <input type="number" id="duration" value="5" class="bg-gray-700 text-white text-center w-28 text-lg p-2 rounded-md border border-gray-600 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+            <label for="duration" class="text-sm font-medium text-gray-400 mb-2">Set Duration (MM:SS)</label>
+            <input type="text" id="duration" value="10:00" placeholder="MM:SS" pattern="[0-9]{1,2}:[0-5][0-9]" class="bg-gray-700 text-white text-center w-32 text-lg p-2 rounded-md border border-gray-600 focus:ring-2 focus:ring-cyan-500 focus:outline-none">
         </div>
 
         <div id="timerDisplay" class="text-7xl font-bold text-gray-100 tracking-wider">
@@ -102,6 +102,25 @@
                 playSound(sineSynth, 'C5', '16n', 1, 200);
             }
         }
+
+        /**
+         * Parses a time string in "MM:SS" format.
+         * @param {string} timeString - The string to parse.
+         * @returns {number|null} The total seconds, or null if invalid.
+         */
+        function parseTime(timeString) {
+            const parts = timeString.split(':');
+            if (parts.length !== 2) return null;
+
+            const minutes = parseInt(parts[0], 10);
+            const seconds = parseInt(parts[1], 10);
+
+            if (isNaN(minutes) || isNaN(seconds) || seconds > 59 || seconds < 0 || minutes < 0) {
+                return null;
+            }
+
+            return (minutes * 60) + seconds;
+        }
         
         /**
          * Toggles the timer between play and pause states.
@@ -123,12 +142,13 @@
             } else {
                 // If it's a new start, get the duration from the input
                 if (remainingSeconds <= 0 || timerId === null) {
-                    const durationMinutes = parseInt(durationInput.value, 10);
-                    if (isNaN(durationMinutes) || durationMinutes <= 0) {
-                        alert("Please enter a valid duration greater than 0.");
+                    const totalSeconds = parseTime(durationInput.value);
+                    if (totalSeconds === null || totalSeconds <= 0) {
+                        statusMessage.textContent = 'Invalid format. Use MM:SS.';
+                        statusMessage.className = 'text-red-400 h-6';
                         return;
                     }
-                    remainingSeconds = durationMinutes * 60;
+                    remainingSeconds = totalSeconds;
                     lastMinuteNotified = -1;
                 }
                 
@@ -183,11 +203,20 @@
          * Updates the timer display based on the current input value.
          */
         function updateDisplayFromInput() {
-            const durationMinutes = parseInt(durationInput.value, 10) || 0;
-            const displaySeconds = durationMinutes * 60;
-            const minutes = Math.floor(displaySeconds / 60);
-            const seconds = displaySeconds % 60;
-            timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            const totalSeconds = parseTime(durationInput.value);
+
+            if (totalSeconds === null) {
+                timerDisplay.textContent = "00:00";
+                statusMessage.textContent = "Invalid format. Use MM:SS.";
+                statusMessage.className = 'text-red-400 h-6';
+            } else {
+                statusMessage.textContent = "";
+                statusMessage.className = 'h-6';
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+            
             remainingSeconds = 0;
         }
 
